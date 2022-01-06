@@ -299,5 +299,5 @@ class EHooke(object):
     def save_mask(self):
         self.image_manager.save_mask()
 
-    def save_labels(self):
-        self.segments_manager.save_labels()
+    def save_labels(self, fn=None):
+        self.segments_manager.save_labels(filename=fn)
