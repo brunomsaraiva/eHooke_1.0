@@ -54,17 +54,22 @@ class ImageManager(object):
         self.optional_w_mask = None
         self.align_values = (0, 0)
 
-    def set_clip(self, margin):
+    def set_clip(self, margin, align):
         """ Defines the clipping size based on the base image dimensions
         and the border margin. Stores the clipping size on self.clip in the
         (x0, y0, x1, y1) format
         In case the margin is less than 10px, this value is going to be set to
-        10, to make sure there is room for the alignments of the fluor image"""
+        10, to make sure there is room for the alignments of the fluor image
+        AB: there is no need for clipping when align is set to false
+        Separate if clause for readability """
 
         if margin < 10:
             border = 10
         else:
             border = margin
+
+        if not align:
+            border = 0
 
         x_length, y_length = self.base_image.shape
         self.clip = (border, border, x_length - border,
@@ -85,7 +90,7 @@ class ImageManager(object):
         image = exposure.rescale_intensity(image)
 
         self.base_image = image
-        self.set_clip(params.border)
+        self.set_clip(params.border, params.auto_align)
 
     def compute_base_mask(self, params):
         """Creates the base mask for the base image.
