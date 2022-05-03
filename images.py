@@ -15,6 +15,7 @@ from skimage.segmentation import mark_boundaries
 from skimage.io import imsave, imread
 from skimage.util import img_as_float, img_as_uint
 from skimage.filters import threshold_isodata, threshold_local
+from skimage.transform import EuclideanTransform, warp
 from skimage import exposure, color, morphology
 from scipy import ndimage
 
@@ -28,7 +29,7 @@ class ImageManager(object):
 
     def __init__(self):
         self.base_image = None
-        self.clip = None #TODO remove this
+        self.clip = None  # TODO remove this
         self.base_mask = None
         self.mask = None
         self.fluor_image = None
@@ -43,7 +44,7 @@ class ImageManager(object):
         """Sets the class back to the __init__ state"""
 
         self.base_image = None
-        self.clip = None #TODO remove this
+        self.clip = None  # TODO remove this
         self.base_mask = None
         self.mask = None
         self.fluor_image = None
@@ -95,16 +96,16 @@ class ImageManager(object):
             # need to invert because threshold_adaptive sets dark parts to 0
             block_size = params.mask_blocksize
 
-            if block_size%2 == 0:
+            if block_size % 2 == 0:
                 block_size += 1
 
             threshold = threshold_local(base_mask,
-                                              block_size,
-                                              method="gaussian",
-                                              offset=params.mask_offset)
+                                        block_size,
+                                        method="gaussian",
+                                        offset=params.mask_offset)
 
             base_mask = 1.0 - (base_mask > threshold)
-        
+
         elif params.mask_algorithm == "Absolute":
             value = float(raw_input("Insert Threshold Value: "))
             print(value)
@@ -134,8 +135,8 @@ class ImageManager(object):
             mask = img_as_float(morphology.closing(
                 mask, closing_matrix))
             mask = 1 - \
-                img_as_float(morphology.closing(
-                    1 - mask, closing_matrix))
+                   img_as_float(morphology.closing(
+                       1 - mask, closing_matrix))
 
         for f in range(params.mask_dilation):
             mask = morphology.erosion(mask, np.ones((3, 3)))
@@ -171,11 +172,13 @@ class ImageManager(object):
         # TODO refactor alignment
         if params.auto_align:
             minscore = 0
-            width = 10 # AB test only misalignments of 10px either side
+            width = 10  # AB test only misalignments of 10px either side
             for dx in range(-width, width):
                 for dy in range(-width, width):
-                    tot = -np.sum(np.multiply(inverted_mask, fluor_image[x0 + dx:x1 + dx, y0 + dy:y1 + dy]))
-                                                          
+                    matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
+                    t_fluor = warp(fluor_image, matrix.inverse)
+                    tot = -np.sum(np.multiply(inverted_mask, t_fluor))
+
                     if tot < minscore:
                         minscore = tot
                         best = (dx, dy)
@@ -185,8 +188,9 @@ class ImageManager(object):
 
         self.align_values = best
         dx, dy = best
-        self.original_fluor_image = self.original_fluor_image[x0 + dx:x1 + dx, y0 + dy:y1 + dy]
-        self.fluor_image = fluor_image[x0 + dx:x1 + dx, y0 + dy:y1 + dy]
+        final_matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
+        self.original_fluor_image = warp(self.original_fluor_image, final_matrix.inverse)
+        self.fluor_image = warp(fluor_image, matrix.inverse)
 
         self.overlay_mask_fluor_image()
 
@@ -205,17 +209,16 @@ class ImageManager(object):
         optional_image = img_as_float(optional_image)
 
         best = (0, 0)
-        x0, y0, x1, y1 = self.clip
 
         if params.auto_align:
             minscore = 0
             width = params.border
             for dx in range(-width, width):
                 for dy in range(-width, width):
-                    tot = -np.sum(np.multiply(inverted_mask,
-                                              optional_image[x0 + dx:x1 + dx,
-                                                             y0 + dy:y1 + dy]))
-                                                          
+                    matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
+                    t_opt = warp(optional_image, matrix.inverse)
+                    tot = -np.sum(np.multiply(inverted_mask, t_opt))
+
                     if tot < minscore:
                         minscore = tot
                         best = (dx, dy)
@@ -224,19 +227,14 @@ class ImageManager(object):
             best = (params.x_align, params.y_align)
 
         dx, dy = best
-
-        self.optional_image = optional_image[x0 + dx:x1 + dx, y0 + dy:y1 + dy]
+        matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
+        self.optional_image = warp(optional_image, matrix.inverse)
 
     def overlay_mask_base_image(self):
         """ Creates a new image with an overlay of the mask
         over the base image"""
 
-        x0, y0, x1, y1 = self.clip
-
-        self.base_w_mask = mark_boundaries(self.base_image[x0:x1, y0:y1],
-                                           img_as_uint(self.mask),
-                                           color=(0, 1, 1),
-                                           outline_color=None)
+        self.base_w_mask = mark_boundaries(self.base_image, img_as_uint(self.mask), color=(0, 1, 1), outline_color=None)
 
     def overlay_mask_fluor_image(self):
         """ Creates a new image with an overlay of the mask
@@ -289,4 +287,3 @@ class ImageManager(object):
             filename = asksaveasfilename()
 
         imsave(filename + ".png", self.mask)
-
