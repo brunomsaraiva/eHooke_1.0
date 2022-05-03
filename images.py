@@ -28,7 +28,7 @@ class ImageManager(object):
 
     def __init__(self):
         self.base_image = None
-        self.clip = None
+        self.clip = None #TODO remove this
         self.base_mask = None
         self.mask = None
         self.fluor_image = None
@@ -43,7 +43,7 @@ class ImageManager(object):
         """Sets the class back to the __init__ state"""
 
         self.base_image = None
-        self.clip = None
+        self.clip = None #TODO remove this
         self.base_mask = None
         self.mask = None
         self.fluor_image = None
@@ -55,25 +55,8 @@ class ImageManager(object):
         self.align_values = (0, 0)
 
     def set_clip(self, margin, align):
-        """ Defines the clipping size based on the base image dimensions
-        and the border margin. Stores the clipping size on self.clip in the
-        (x0, y0, x1, y1) format
-        In case the margin is less than 10px, this value is going to be set to
-        10, to make sure there is room for the alignments of the fluor image
-        AB: there is no need for clipping when align is set to false
-        Separate if clause for readability """
-
-        if margin < 10:
-            border = 10
-        else:
-            border = margin
-
-        if not align:
-            border = 0
-
-        x_length, y_length = self.base_image.shape
-        self.clip = (border, border, x_length - border,
-                     y_length - border)
+        """ TODO this function should be removed since alignment can be performed without cropping"""
+        return 0
 
     def load_base_image(self, filename, params):
         """This method is responsible for the loading of the base image and
@@ -90,20 +73,17 @@ class ImageManager(object):
         image = exposure.rescale_intensity(image)
 
         self.base_image = image
-        self.set_clip(params.border, params.auto_align)
 
     def compute_base_mask(self, params):
         """Creates the base mask for the base image.
-        Needs the base image, an instance of imageloaderparams
-        and the clip area, which should be already defined
-        by the load_base_image method
+        Needs the base image and an instance of imageloaderparams
+
         To create the base mask, two algorithms are available, on based on the
         threshold_isodata and the other one on the threshold_local functions
         of the scikit-image.threshold module.
         """
-        x0, y0, x1, y1 = self.clip
 
-        base_mask = np.copy(self.base_image[x0:x1, y0:y1])
+        base_mask = np.copy(self.base_image)
         if params.invert_base:
             base_mask = 1 - base_mask
 
@@ -138,9 +118,8 @@ class ImageManager(object):
 
     def compute_mask(self, params):
         """Creates the mask for the base image.
-        Needs the base image, an instance of imageloaderparams
-        and the clip area, which should be already defined
-        by the load_base_image method.
+        Needs the base image and an instance of imageloaderparams
+
         Creates the mask by improving the base mask created by the
         compute_base_mask method. Applies the mask closing, dilation and
         fill holes parameters.
@@ -188,16 +167,14 @@ class ImageManager(object):
         fluor_image = img_as_float(fluor_image)
 
         best = (0, 0)
-        x0, y0, x1, y1 = self.clip
 
+        # TODO refactor alignment
         if params.auto_align:
             minscore = 0
-            width = params.border
+            width = 10 # AB test only misalignments of 10px either side
             for dx in range(-width, width):
                 for dy in range(-width, width):
-                    tot = -np.sum(np.multiply(inverted_mask,
-                                              fluor_image[x0 + dx:x1 + dx,
-                                                          y0 + dy:y1 + dy]))
+                    tot = -np.sum(np.multiply(inverted_mask, fluor_image[x0 + dx:x1 + dx, y0 + dy:y1 + dy]))
                                                           
                     if tot < minscore:
                         minscore = tot
@@ -207,7 +184,6 @@ class ImageManager(object):
             best = (params.x_align, params.y_align)
 
         self.align_values = best
-
         dx, dy = best
         self.original_fluor_image = self.original_fluor_image[x0 + dx:x1 + dx, y0 + dy:y1 + dy]
         self.fluor_image = fluor_image[x0 + dx:x1 + dx, y0 + dy:y1 + dy]
