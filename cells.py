@@ -613,9 +613,7 @@ class Cell(object):
         """Computes each different region of the cell (whole cell, membrane,
         septum, cytoplasm) and creates their respectives masks."""
         if params.look_for_septum_in_base:
-            x0, y0, x1, y1 = image_manager.clip
-            self.base_box = self.fluor_box(
-                image_manager.base_image[x0:x1, y0:y1])
+            self.base_box = self.fluor_box(image_manager.base_image)
         elif params.look_for_septum_in_optional:
             self.optional_box = self.fluor_box(image_manager.optional_image)
         self.fluor = self.fluor_box(image_manager.fluor_image)
@@ -921,13 +919,13 @@ class CellManager(object):
 
         self.cells = cells
 
-    def overlay_cells_w_base(self, base_image, clip):
+    def overlay_cells_w_base(self, base_image):
         """Creates an overlay of the cells over the base image.
         Besides the base image this method also requires the clipping
         coordinates for the image"""
-        x0, y0, x1, y1 = clip
 
-        base = color.rgb2gray(img_as_float(base_image[x0:x1, y0:y1]))
+
+        base = color.rgb2gray(img_as_float(base_image))
         base = exposure.rescale_intensity(base)
 
         self.base_w_cells = cp.overlay_cells(self.cells, base,
@@ -956,7 +954,7 @@ class CellManager(object):
             labels = cp.paint_cell(c, labels, c.label)
 
         self.merged_labels = labels
-        self.overlay_cells_w_base(image_manager.base_image, image_manager.clip)
+        self.overlay_cells_w_base(image_manager.base_image)
         self.overlay_cells_w_fluor(image_manager.fluor_image)
 
         if image_manager.optional_image is not None:

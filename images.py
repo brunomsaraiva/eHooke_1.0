@@ -15,10 +15,14 @@ from skimage.segmentation import mark_boundaries
 from skimage.io import imsave, imread
 from skimage.util import img_as_float, img_as_uint
 from skimage.filters import threshold_isodata, threshold_local
-from skimage.transform import EuclideanTransform, warp
 from skimage import exposure, color, morphology
 from scipy import ndimage
 
+# AB
+from scipy.signal import fftconvolve
+from scipy.ndimage import center_of_mass
+from skimage.transform import EuclideanTransform, warp
+import matplotlib.pyplot as plt
 
 class ImageManager(object):
     """Main class of the module. This class is responsible for the loading of
@@ -29,7 +33,6 @@ class ImageManager(object):
 
     def __init__(self):
         self.base_image = None
-        self.clip = None  # TODO remove this
         self.base_mask = None
         self.mask = None
         self.fluor_image = None
@@ -44,7 +47,6 @@ class ImageManager(object):
         """Sets the class back to the __init__ state"""
 
         self.base_image = None
-        self.clip = None  # TODO remove this
         self.base_mask = None
         self.mask = None
         self.fluor_image = None
@@ -55,9 +57,6 @@ class ImageManager(object):
         self.optional_w_mask = None
         self.align_values = (0, 0)
 
-    def set_clip(self, margin, align):
-        """ TODO this function should be removed since alignment can be performed without cropping"""
-        return 0
 
     def load_base_image(self, filename, params):
         """This method is responsible for the loading of the base image and
@@ -167,30 +166,21 @@ class ImageManager(object):
 
         fluor_image = img_as_float(fluor_image)
 
-        best = (0, 0)
-
-        # TODO refactor alignment
         if params.auto_align:
-            minscore = 0
-            width = 10  # AB test only misalignments of 10px either side
-            for dx in range(-width, width):
-                for dy in range(-width, width):
-                    matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
-                    t_fluor = warp(fluor_image, matrix.inverse)
-                    tot = -np.sum(np.multiply(inverted_mask, t_fluor))
-
-                    if tot < minscore:
-                        minscore = tot
-                        best = (dx, dy)
-
+            # Alignment is done by taking the maximum of the correlation
+            # between phase and fluorescence
+            corr = fftconvolve(inverted_mask, fluor_image[::-1, ::-1])
+            deviation = np.unravel_index(np.argmax(corr), corr.shape)
+            cm = center_of_mass(np.ones(corr.shape))
+            best = np.subtract(deviation, cm)
         else:
             best = (params.x_align, params.y_align)
 
         self.align_values = best
-        dx, dy = best
+        dy, dx = best
         final_matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
         self.original_fluor_image = warp(self.original_fluor_image, final_matrix.inverse)
-        self.fluor_image = warp(fluor_image, matrix.inverse)
+        self.fluor_image = warp(fluor_image, final_matrix.inverse)
 
         self.overlay_mask_fluor_image()
 
@@ -211,18 +201,12 @@ class ImageManager(object):
         best = (0, 0)
 
         if params.auto_align:
-            minscore = 0
-            width = params.border
-            for dx in range(-width, width):
-                for dy in range(-width, width):
-                    matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
-                    t_opt = warp(optional_image, matrix.inverse)
-                    tot = -np.sum(np.multiply(inverted_mask, t_opt))
-
-                    if tot < minscore:
-                        minscore = tot
-                        best = (dx, dy)
-
+            # Alignment is done by taking the maximum of the correlation
+            # between phase and fluorescence
+            corr = fftconvolve(inverted_mask, optional_image[::-1, ::-1])
+            deviation = np.unravel_index(np.argmax(corr), corr.shape)
+            cm = center_of_mass(np.ones(corr.shape))
+            best = np.subtract(deviation, cm)
         else:
             best = (params.x_align, params.y_align)
 
@@ -287,3 +271,4 @@ class ImageManager(object):
             filename = asksaveasfilename()
 
         imsave(filename + ".png", self.mask)
+

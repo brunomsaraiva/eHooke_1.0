@@ -108,8 +108,7 @@ class SegmentsManager(object):
         using the save_image method from EHooke or directly using the imsave
         from skimage.io"""
 
-        x1, y1, x2, y2 = image_manager.clip
-        clipped_base = np.copy(image_manager.base_image[x1:x2, y1:y2])
+        clipped_base = np.copy(image_manager.base_image)
 
         places = self.features > 0.5
         clipped_base[places] = 1
@@ -168,3 +167,6 @@ class SegmentsManager(object):
             filename = asksaveasfilename()
 
         imsave(filename + ".tif", self.labels)
+
+    def save_fluor(self, filename, image_manager):
+        imsave(filename + ".tif", image_manager.original_fluor_image)
