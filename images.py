@@ -22,7 +22,7 @@ from scipy import ndimage
 from scipy.signal import fftconvolve
 from scipy.ndimage import center_of_mass
 from skimage.transform import EuclideanTransform, warp
-import matplotlib.pyplot as plt
+
 
 class ImageManager(object):
     """Main class of the module. This class is responsible for the loading of
@@ -179,8 +179,8 @@ class ImageManager(object):
         self.align_values = best
         dy, dx = best
         final_matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
-        self.original_fluor_image = warp(self.original_fluor_image, final_matrix.inverse)
-        self.fluor_image = warp(fluor_image, final_matrix.inverse)
+        self.original_fluor_image = warp(self.original_fluor_image, final_matrix.inverse,preserve_range=True)
+        self.fluor_image = warp(fluor_image, final_matrix.inverse,preserve_range=True)
 
         self.overlay_mask_fluor_image()
 
@@ -210,9 +210,10 @@ class ImageManager(object):
         else:
             best = (params.x_align, params.y_align)
 
+
         dx, dy = best
         matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
-        self.optional_image = warp(optional_image, matrix.inverse)
+        self.optional_image = warp(optional_image, matrix.inverse,preserve_range=True)
 
     def overlay_mask_base_image(self):
         """ Creates a new image with an overlay of the mask

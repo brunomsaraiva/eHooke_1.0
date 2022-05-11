@@ -11,8 +11,11 @@ from skimage.feature import peak_local_max
 from skimage import morphology
 from scipy import ndimage
 from skimage.io import imsave
+from skimage.util import img_as_int
 from tkinter.filedialog import asksaveasfilename
 
+# AB
+from skimage.transform import EuclideanTransform, warp
 
 class SegmentsManager(object):
     """Main class of the module.
@@ -170,3 +173,15 @@ class SegmentsManager(object):
 
     def save_fluor(self, filename, image_manager):
         imsave(filename + ".tif", image_manager.original_fluor_image)
+
+    def save_labels_aligned(self, filename, image_manager):
+        best = image_manager.align_values
+        dy, dx = best
+        final_matrix = EuclideanTransform(rotation=0, translation=(-dx, -dy))
+        mask_aligned = warp(self.labels, final_matrix.inverse, preserve_range=True)
+
+        # ONLY DO THIS IN CASES WHERE THE VALUES HAVE NO PHYSICAL SIGNIFICANCE
+        mask_aligned = np.array(mask_aligned, dtype=np.int32)
+        # CARE
+
+        imsave(filename+'.tif', mask_aligned)
