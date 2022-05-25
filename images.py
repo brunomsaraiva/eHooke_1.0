@@ -18,6 +18,11 @@ from skimage.filters import threshold_isodata, threshold_local
 from skimage import exposure, color, morphology
 from scipy import ndimage
 
+# AB
+from scipy.signal import fftconvolve
+from scipy.ndimage import center_of_mass
+from skimage.transform import EuclideanTransform, warp
+
 
 class ImageManager(object):
     """Main class of the module. This class is responsible for the loading of
@@ -28,7 +33,6 @@ class ImageManager(object):
 
     def __init__(self):
         self.base_image = None
-        self.clip = None
         self.base_mask = None
         self.mask = None
         self.fluor_image = None
@@ -43,7 +47,6 @@ class ImageManager(object):
         """Sets the class back to the __init__ state"""
 
         self.base_image = None
-        self.clip = None
         self.base_mask = None
         self.mask = None
         self.fluor_image = None
@@ -54,21 +57,6 @@ class ImageManager(object):
         self.optional_w_mask = None
         self.align_values = (0, 0)
 
-    def set_clip(self, margin):
-        """ Defines the clipping size based on the base image dimensions
-        and the border margin. Stores the clipping size on self.clip in the
-        (x0, y0, x1, y1) format
-        In case the margin is less than 10px, this value is going to be set to
-        10, to make sure there is room for the alignments of the fluor image"""
-
-        if margin < 10:
-            border = 10
-        else:
-            border = margin
-
-        x_length, y_length = self.base_image.shape
-        self.clip = (border, border, x_length - border,
-                     y_length - border)
 
     def load_base_image(self, filename, params):
         """This method is responsible for the loading of the base image and
@@ -85,20 +73,17 @@ class ImageManager(object):
         image = exposure.rescale_intensity(image)
 
         self.base_image = image
-        self.set_clip(params.border)
 
     def compute_base_mask(self, params):
         """Creates the base mask for the base image.
-        Needs the base image, an instance of imageloaderparams
-        and the clip area, which should be already defined
-        by the load_base_image method
+        Needs the base image and an instance of imageloaderparams
+
         To create the base mask, two algorithms are available, on based on the
         threshold_isodata and the other one on the threshold_local functions
         of the scikit-image.threshold module.
         """
-        x0, y0, x1, y1 = self.clip
 
-        base_mask = np.copy(self.base_image[x0:x1, y0:y1])
+        base_mask = np.copy(self.base_image)
         if params.invert_base:
             base_mask = 1 - base_mask
 
@@ -110,16 +95,16 @@ class ImageManager(object):
             # need to invert because threshold_adaptive sets dark parts to 0
             block_size = params.mask_blocksize
 
-            if block_size%2 == 0:
+            if block_size % 2 == 0:
                 block_size += 1
 
             threshold = threshold_local(base_mask,
-                                              block_size,
-                                              method="gaussian",
-                                              offset=params.mask_offset)
+                                        block_size,
+                                        method="gaussian",
+                                        offset=params.mask_offset)
 
             base_mask = 1.0 - (base_mask > threshold)
-        
+
         elif params.mask_algorithm == "Absolute":
             value = float(raw_input("Insert Threshold Value: "))
             print(value)
@@ -133,9 +118,8 @@ class ImageManager(object):
 
     def compute_mask(self, params):
         """Creates the mask for the base image.
-        Needs the base image, an instance of imageloaderparams
-        and the clip area, which should be already defined
-        by the load_base_image method.
+        Needs the base image and an instance of imageloaderparams
+
         Creates the mask by improving the base mask created by the
         compute_base_mask method. Applies the mask closing, dilation and
         fill holes parameters.
@@ -150,8 +134,8 @@ class ImageManager(object):
             mask = img_as_float(morphology.closing(
                 mask, closing_matrix))
             mask = 1 - \
-                img_as_float(morphology.closing(
-                    1 - mask, closing_matrix))
+                   img_as_float(morphology.closing(
+                       1 - mask, closing_matrix))
 
         for f in range(params.mask_dilation):
             mask = morphology.erosion(mask, np.ones((3, 3)))
@@ -182,30 +166,21 @@ class ImageManager(object):
 
         fluor_image = img_as_float(fluor_image)
 
-        best = (0, 0)
-        x0, y0, x1, y1 = self.clip
-
         if params.auto_align:
-            minscore = 0
-            width = params.border
-            for dx in range(-width, width):
-                for dy in range(-width, width):
-                    tot = -np.sum(np.multiply(inverted_mask,
-                                              fluor_image[x0 + dx:x1 + dx,
-                                                          y0 + dy:y1 + dy]))
-                                                          
-                    if tot < minscore:
-                        minscore = tot
-                        best = (dx, dy)
-
+            # Alignment is done by taking the maximum of the correlation
+            # between phase and fluorescence
+            corr = fftconvolve(inverted_mask, fluor_image[::-1, ::-1])
+            deviation = np.unravel_index(np.argmax(corr), corr.shape)
+            cm = center_of_mass(np.ones(corr.shape))
+            best = np.subtract(deviation, cm)
         else:
             best = (params.x_align, params.y_align)
 
         self.align_values = best
-
-        dx, dy = best
-        self.original_fluor_image = self.original_fluor_image[x0 + dx:x1 + dx, y0 + dy:y1 + dy]
-        self.fluor_image = fluor_image[x0 + dx:x1 + dx, y0 + dy:y1 + dy]
+        dy, dx = best
+        final_matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
+        self.original_fluor_image = warp(self.original_fluor_image, final_matrix.inverse,preserve_range=True)
+        self.fluor_image = warp(fluor_image, final_matrix.inverse,preserve_range=True)
 
         self.overlay_mask_fluor_image()
 
@@ -224,38 +199,27 @@ class ImageManager(object):
         optional_image = img_as_float(optional_image)
 
         best = (0, 0)
-        x0, y0, x1, y1 = self.clip
 
         if params.auto_align:
-            minscore = 0
-            width = params.border
-            for dx in range(-width, width):
-                for dy in range(-width, width):
-                    tot = -np.sum(np.multiply(inverted_mask,
-                                              optional_image[x0 + dx:x1 + dx,
-                                                             y0 + dy:y1 + dy]))
-                                                          
-                    if tot < minscore:
-                        minscore = tot
-                        best = (dx, dy)
-
+            # Alignment is done by taking the maximum of the correlation
+            # between phase and fluorescence
+            corr = fftconvolve(inverted_mask, optional_image[::-1, ::-1])
+            deviation = np.unravel_index(np.argmax(corr), corr.shape)
+            cm = center_of_mass(np.ones(corr.shape))
+            best = np.subtract(deviation, cm)
         else:
             best = (params.x_align, params.y_align)
 
-        dx, dy = best
 
-        self.optional_image = optional_image[x0 + dx:x1 + dx, y0 + dy:y1 + dy]
+        dx, dy = best
+        matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
+        self.optional_image = warp(optional_image, matrix.inverse,preserve_range=True)
 
     def overlay_mask_base_image(self):
         """ Creates a new image with an overlay of the mask
         over the base image"""
 
-        x0, y0, x1, y1 = self.clip
-
-        self.base_w_mask = mark_boundaries(self.base_image[x0:x1, y0:y1],
-                                           img_as_uint(self.mask),
-                                           color=(0, 1, 1),
-                                           outline_color=None)
+        self.base_w_mask = mark_boundaries(self.base_image, img_as_uint(self.mask), color=(0, 1, 1), outline_color=None)
 
     def overlay_mask_fluor_image(self):
         """ Creates a new image with an overlay of the mask

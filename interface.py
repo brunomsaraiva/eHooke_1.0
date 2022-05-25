@@ -364,29 +364,25 @@ class Interface(object):
         self.current_image = image
 
         if image == "Base":
-            x1, y1, x2, y2 = self.ehooke.image_manager.clip
-            img = rescale_intensity(self.images[image][x1:x2, y1:y2], in_range=(self.base_min, self.base_max))
+            img = rescale_intensity(self.images[image], in_range=(self.base_min, self.base_max))
             self.min_scale.set(int(self.base_min*100))
             self.max_scale.set(int(self.base_max*100))
             self.current_image_label.configure(text="Base")
         elif image == "Base_mask":
-            x1, y1, x2, y2 = self.ehooke.image_manager.clip
-            img = rescale_intensity(self.images["Base"][x1:x2, y1:y2], in_range=(self.base_min, self.base_max))
+            img = rescale_intensity(self.images["Base"], in_range=(self.base_min, self.base_max))
             img = mark_boundaries(img, img_as_uint(self.images["Mask"]), color=(0, 1, 1), outline_color=None)
             self.min_scale.set(int(self.base_min*100))
             self.max_scale.set(int(self.base_max*100))
             self.current_image_label.configure(text="Base with mask")
         elif image == "Base_features":
-            x1, y1, x2, y2 = self.ehooke.image_manager.clip
-            img = rescale_intensity(self.images["Base"][x1:x2, y1:y2], in_range=(self.base_min, self.base_max))
+            img = rescale_intensity(self.images["Base"], in_range=(self.base_min, self.base_max))
             places = self.ehooke.segments_manager.features > 0.5
             img[places] = 1
             self.min_scale.set(int(self.base_min*100))
             self.max_scale.set(int(self.base_max*100))
             self.current_image_label.configure(text="Base with Features")
         elif image == "Base_cells_outlined":
-            x1, y1, x2, y2 = self.ehooke.image_manager.clip
-            img = rescale_intensity(self.images["Base"][x1:x2, y1:y2], in_range=(self.base_min, self.base_max))
+            img = rescale_intensity(self.images["Base"], in_range=(self.base_min, self.base_max))
             img = cp.overlay_cells(self.ehooke.cell_manager.cells, img, self.ehooke.cell_manager.cell_colors)
             self.min_scale.set(int(self.base_min*100))
             self.max_scale.set(int(self.base_max*100))
