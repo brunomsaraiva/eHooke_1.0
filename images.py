@@ -57,7 +57,6 @@ class ImageManager(object):
         self.optional_w_mask = None
         self.align_values = (0, 0)
 
-
     def load_base_image(self, filename, params):
         """This method is responsible for the loading of the base image and
         its storage on the self.base_image of the class instance.
@@ -179,8 +178,8 @@ class ImageManager(object):
         self.align_values = best
         dy, dx = best
         final_matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
-        self.original_fluor_image = warp(self.original_fluor_image, final_matrix.inverse,preserve_range=True)
-        self.fluor_image = warp(fluor_image, final_matrix.inverse,preserve_range=True)
+        self.original_fluor_image = warp(self.original_fluor_image, final_matrix.inverse, preserve_range=True)
+        self.fluor_image = warp(fluor_image, final_matrix.inverse, preserve_range=True)
 
         self.overlay_mask_fluor_image()
 
@@ -210,10 +209,9 @@ class ImageManager(object):
         else:
             best = (params.x_align, params.y_align)
 
-
         dx, dy = best
         matrix = EuclideanTransform(rotation=0, translation=(dx, dy))
-        self.optional_image = warp(optional_image, matrix.inverse,preserve_range=True)
+        self.optional_image = warp(optional_image, matrix.inverse, preserve_range=True)
 
     def overlay_mask_base_image(self):
         """ Creates a new image with an overlay of the mask
@@ -272,4 +270,3 @@ class ImageManager(object):
             filename = asksaveasfilename()
 
         imsave(filename + ".png", self.mask)
-
