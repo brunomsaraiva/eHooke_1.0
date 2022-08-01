@@ -102,7 +102,7 @@ class Cell(object):
                                   ("Fluor Ratio 25%", 0),
                                   ("Fluor Ratio 10%", 0),
                                   ("Memb+Sept Median", 0),
-                                  ("Cell Cycle Phase", 0)],)
+                                  ("Cell Cycle Phase", 0)], )
 
         self.selection_state = 1
 
@@ -224,7 +224,7 @@ class Cell(object):
             self.long_axis = dum
 
         self.stats["Eccentricity"] = \
-            ((1 - ((self.stats["Width"]/2.0)**2/(self.stats["Length"]/2.0)**2))**0.5)
+            ((1 - ((self.stats["Width"] / 2.0) ** 2 / (self.stats["Length"] / 2.0) ** 2)) ** 0.5)
         self.stats["Irregularity"] = \
             (len(self.outline) * float(pixel_size) / (self.stats["Area"] ** 0.5))
 
@@ -344,13 +344,13 @@ class Cell(object):
 
         for i in range(len(label_sums)):
             if label_sums[i] == sorted_label_sums[-1]:
-                first_label = i+1
+                first_label = i + 1
                 label_sums.pop(i)
                 break
 
         for i in range(len(label_sums)):
             if label_sums[i] == sorted_label_sums[-2]:
-                second_label = i+2
+                second_label = i + 2
                 label_sums.pop(i)
                 break
 
@@ -386,32 +386,32 @@ class Cell(object):
                 if data[x, y] == 1:
                     if x == 0 and y == 0:
                         neighs_sum = data[x, y] + data[x + 1, y] + \
-                            data[x + 1, y + 1] + data[x, y + 1]
+                                     data[x + 1, y + 1] + data[x, y + 1]
                     elif x == len(data) - 1 and y == len(data[x]) - 1:
                         neighs_sum = data[x, y] + data[x, y - 1] + \
-                            data[x - 1, y - 1] + data[x - 1, y]
+                                     data[x - 1, y - 1] + data[x - 1, y]
                     elif x == 0 and y == len(data[x]) - 1:
                         neighs_sum = data[x, y] + data[x, y - 1] + \
-                            data[x + 1, y - 1] + data[x + 1, y]
+                                     data[x + 1, y - 1] + data[x + 1, y]
                     elif x == len(data) - 1 and y == 0:
                         neighs_sum = data[x, y] + data[x - 1, y] + \
-                            data[x - 1, y + 1] + data[x, y + 1]
+                                     data[x - 1, y + 1] + data[x, y + 1]
                     elif x == 0:
                         neighs_sum = data[x, y] + data[x, y - 1] + data[x, y + 1] + \
-                            data[x + 1, y - 1] + \
-                            data[x + 1, y] + data[x + 1, y + 1]
+                                     data[x + 1, y - 1] + \
+                                     data[x + 1, y] + data[x + 1, y + 1]
                     elif x == len(data) - 1:
                         neighs_sum = data[x, y] + data[x, y - 1] + data[x, y + 1] + \
-                            data[x - 1, y - 1] + \
-                            data[x - 1, y] + data[x - 1, y + 1]
+                                     data[x - 1, y - 1] + \
+                                     data[x - 1, y] + data[x - 1, y + 1]
                     elif y == 0:
                         neighs_sum = data[x, y] + data[x - 1, y] + data[x + 1, y] + \
-                            data[x - 1, y + 1] + \
-                            data[x, y + 1] + data[x + 1, y + 1]
+                                     data[x - 1, y + 1] + \
+                                     data[x, y + 1] + data[x + 1, y + 1]
                     elif y == len(data[x]) - 1:
                         neighs_sum = data[x, y] + data[x - 1, y] + data[x + 1, y] + \
-                            data[x - 1, y - 1] + \
-                            data[x, y - 1] + data[x + 1, y - 1]
+                                     data[x - 1, y - 1] + \
+                                     data[x, y - 1] + data[x + 1, y - 1]
                     else:
                         neighs_sum = data[x, y] + data[x - 1, y] + data[x + 1, y] + data[x - 1, y - 1] + data[
                             x, y - 1] + data[x + 1, y - 1] + data[x - 1, y + 1] + data[x, y + 1] + data[x + 1, y + 1]
@@ -591,7 +591,7 @@ class Cell(object):
             try:
                 self.recursive_compute_sept(cell_mask, inner_mask_thickness - 1, septum_base, septum_opt, algorithm)
             except RuntimeError:
-                    self.recursive_compute_sept(cell_mask, inner_mask_thickness-1, septum_base, septum_opt, "Box")
+                self.recursive_compute_sept(cell_mask, inner_mask_thickness - 1, septum_base, septum_opt, "Box")
 
     def recursive_compute_opensept(self, cell_mask, inner_mask_thickness,
                                    septum_base, septum_opt, algorithm):
@@ -607,7 +607,7 @@ class Cell(object):
                                                 septum_base, septum_opt,
                                                 algorithm)
             except RuntimeError:
-                self.recursive_compute_opensept(cell_mask, inner_mask_thickness-1, septum_base, septum_opt, "Box")
+                self.recursive_compute_opensept(cell_mask, inner_mask_thickness - 1, septum_base, septum_opt, "Box")
 
     def compute_regions(self, params, image_manager):
         """Computes each different region of the cell (whole cell, membrane,
@@ -630,12 +630,12 @@ class Cell(object):
             if params.septum_algorithm == "Isodata":
                 self.perim_mask = self.compute_perim_mask(self.cell_mask,
                                                           params.inner_mask_thickness)
-                
+
                 self.membsept_mask = (self.perim_mask + self.sept_mask) > 0
                 linmask = self.remove_sept_from_membrane(
                     image_manager.mask.shape)
                 self.cyto_mask = (self.cell_mask - self.perim_mask -
-                                      self.sept_mask) > 0
+                                  self.sept_mask) > 0
                 if linmask is not None:
                     old_membrane = self.perim_mask
                     self.perim_mask = (old_membrane - linmask) > 0
@@ -754,16 +754,16 @@ class Cell(object):
                 fluorbox, self.sept_mask) - self.stats["Baseline"]
 
             self.stats["Fluor Ratio"] = (self.measure_fluor(fluorbox, self.sept_mask) - self.stats[
-                                        "Baseline"]) / (self.measure_fluor(fluorbox, self.perim_mask) - self.stats["Baseline"])
+                "Baseline"]) / (self.measure_fluor(fluorbox, self.perim_mask) - self.stats["Baseline"])
 
             self.stats["Fluor Ratio 75%"] = (self.measure_fluor(fluorbox, self.sept_mask, 0.75) - self.stats[
-                                            "Baseline"]) / (self.measure_fluor(fluorbox, self.perim_mask) - self.stats["Baseline"])
+                "Baseline"]) / (self.measure_fluor(fluorbox, self.perim_mask) - self.stats["Baseline"])
 
             self.stats["Fluor Ratio 25%"] = (self.measure_fluor(fluorbox, self.sept_mask, 0.25) - self.stats[
-                                            "Baseline"]) / (self.measure_fluor(fluorbox, self.perim_mask) - self.stats["Baseline"])
+                "Baseline"]) / (self.measure_fluor(fluorbox, self.perim_mask) - self.stats["Baseline"])
 
             self.stats["Fluor Ratio 10%"] = (self.measure_fluor(fluorbox, self.sept_mask, 0.10) - self.stats[
-                                            "Baseline"]) / (self.measure_fluor(fluorbox, self.perim_mask) - self.stats["Baseline"])
+                "Baseline"]) / (self.measure_fluor(fluorbox, self.perim_mask) - self.stats["Baseline"])
             self.stats["Memb+Sept Median"] = self.measure_fluor(fluorbox, self.membsept_mask) - self.stats["Baseline"]
 
         else:
@@ -815,7 +815,7 @@ class Cell(object):
             by0 = by0 + y1 - y0 + 1
             by1 = by1 + y1 - y0 + 1
             img[bx0:bx1, by0:by1] = color.gray2rgb(background[x0:x1 + 1,
-                                                              y0:y1 + 1] * axial)
+                                                   y0:y1 + 1] * axial)
         self.image = img_as_int(img)
 
     def get_cell_image(self, fluor_image):
@@ -831,7 +831,7 @@ class Cell(object):
 
         for px in self.outline:
             y, x = px
-            neigh_pixels = labels[y-1:y+2, x-1:x+2].flatten()
+            neigh_pixels = labels[y - 1:y + 2, x - 1:x + 2].flatten()
 
             outline_check = False
 
@@ -924,7 +924,6 @@ class CellManager(object):
         Besides the base image this method also requires the clipping
         coordinates for the image"""
 
-
         base = color.rgb2gray(img_as_float(base_image))
         base = exposure.rescale_intensity(base)
 
@@ -1001,20 +1000,20 @@ class CellManager(object):
                                  self.cell_colors, params.imageloaderparams.pixel_size)
         self.overlay_cells(image_manager)
 
-
     def merge_cells(self, label_c1, label_c2, params, segments_manager, image_manager):
         """merges two cells"""
         label_c1 = int(label_c1)
         label_c2 = int(label_c2)
         self.cells[str(label_c2)].stats["Area"] = self.cells[str(label_c2)].stats[
-            "Area"] + self.cells[str(label_c1)].stats["Area"]
+                                                      "Area"] + self.cells[str(label_c1)].stats["Area"]
 
         self.cells[str(label_c2)].lines.extend(self.cells[str(label_c1)].lines)
 
         self.cells[str(label_c2)].merged_list.append(label_c1)
 
         self.cells[str(label_c2)].outline.extend(self.cells[str(label_c1)].outline)
-        self.cells[str(label_c2)].stats["Neighbours"] = self.cells[str(label_c2)].stats["Neighbours"] + self.cells[str(label_c1)].stats["Neighbours"] - 2
+        self.cells[str(label_c2)].stats["Neighbours"] = self.cells[str(label_c2)].stats["Neighbours"] + \
+                                                        self.cells[str(label_c1)].stats["Neighbours"] - 2
 
         del self.cells[str(label_c1)]
 
@@ -1022,8 +1021,8 @@ class CellManager(object):
         self.cells[str(label_c2)].compute_axes(rotations, image_manager.mask.shape, params.imageloaderparams.pixel_size)
 
         self.cells[str(label_c2)].recompute_outline(segments_manager.labels)
-        self.cells[str(label_c2)].stats["Perimeter"] = len(self.cells[str(label_c2)].outline) * float(params.imageloaderparams.pixel_size)
-
+        self.cells[str(label_c2)].stats["Perimeter"] = len(self.cells[str(label_c2)].outline) * float(
+            params.imageloaderparams.pixel_size)
 
         if len(self.cells[str(label_c2)].merged_list) > 0:
             self.cells[str(label_c2)].merged_with = "Yes"
@@ -1040,9 +1039,10 @@ class CellManager(object):
             self.cells[str(id)] = deepcopy(self.original_cells[str(id)])
             self.cells[str(id)].compute_axes(rotations, image_manager.mask.shape, params.imageloaderparams.pixel_size)
             self.cells[str(id)].recompute_outline(segments_manager.labels)
-            self.cells[str(id)].stats["Perimeter"] = len(self.cells[str(id)].outline) * float(params.imageloaderparams.pixel_size)
+            self.cells[str(id)].stats["Perimeter"] = len(self.cells[str(id)].outline) * float(
+                params.imageloaderparams.pixel_size)
         if len(self.cells[str(id)].merged_list) == 0:
-                self.cells[str(id)].merged_with = "No"
+            self.cells[str(id)].merged_with = "No"
 
         for k in self.cells.keys():
             cp.assign_cell_color(self.cells[k], self.cells,
@@ -1090,15 +1090,15 @@ class CellManager(object):
 
     def select_cells_optional(self, signal_ratio, image_manager):
         optional_image = image_manager.optional_image
-        thresh = threshold_isodata(optional_image)
+        thresh = threshold_isodata(optional_image[np.nonzero(optional_image)])
 
         for k in self.cells.keys():
             cell = self.cells[k]
             x0, y0, x1, y1 = cell.box
             cell_mask = cell.cell_mask
 
-            optional_cell = optional_image[x0:x1+1, y0:y1+1]
+            optional_cell = optional_image[x0:x1 + 1, y0:y1 + 1]
             optional_signal = (optional_cell * cell_mask) > thresh
 
-            if np.sum(optional_signal)/np.sum(cell_mask) > signal_ratio:
+            if np.sum(optional_signal) / np.sum(cell_mask) > signal_ratio:
                 self.cells[k].selection_state = 1
